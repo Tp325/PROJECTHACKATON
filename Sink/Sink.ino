@@ -1,7 +1,6 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <SPI.h>
-#include <LoRa.h>
+#include "MeshLora.h"
 
 // Thông tin Wi-Fi
 const char* ssid = "Phong_4";
@@ -12,11 +11,14 @@ const char* mqtt_server = "103.221.220.183";
 const int mqtt_port = 1883;
 const char* mqtt_user = "api1@Iotlab";
 const char* mqtt_pass = "Iotlab@2023";
-
+// thời gian ngủ
+#define sleeptime 15 * 60  // Giây
 // Các chân LoRa
 #define SS 5
 #define RST 4
 #define DIO0 2
+#define masterID 1
+MeshLora mesh(masterID, 9600, 433E6, 5, SS, RST, DIO0);
 
 // Tạo client WiFi và MQTT
 WiFiClient espClient;
@@ -24,49 +26,38 @@ PubSubClient mqttClient(espClient);
 
 void setup() {
   Serial.begin(9600);
-  setupWiFi();
-
-  // Khởi động LoRa
-  LoRa.setPins(SS, RST, DIO0);
-  if (!LoRa.begin(433E6)) {  // Tần số 433 MHz
-    Serial.println("Khởi động LoRa thất bại!");
-    while (1)
-      ;
-  }
-  Serial.println("LoRa đã sẵn sàng để nhận dữ liệu!");
-
   // Kết nối WiFi
+  setupWiFi();
 
   // Kết nối MQTT
   mqttClient.setServer(mqtt_server, mqtt_port);
   connectMQTT();
-}
-
-void loop() {
   if (!mqttClient.connected()) {
     connectMQTT();
   }
   mqttClient.loop();
-
-  // Kiểm tra xem có gói dữ liệu nào từ LoRa
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
-    String receivedData = "";
-    while (LoRa.available()) {
-      receivedData += (char)LoRa.read();
-    }
-
+  for (int i = 2; i <= 4; i++) {
+    mesh.sendMessage("wakeup", i);
+    mesh.receiveMessage();
     Serial.print("Dữ liệu nhận được từ LoRa: ");
-    Serial.println(receivedData);
+    Serial.println(mesh.receiveMsg);
 
-    // Gửi dữ liệu lên MQTT
-    if (mqttClient.publish("Hackaton", receivedData.c_str())) {
+    //Gửi dữ liệu lên MQTT
+    if (mqttClient.publish("Hackaton", mesh.receiveMsg.c_str())) {
       Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
     } else {
       Serial.println("Gửi dữ liệu lên MQTT thất bại!");
-    }    
+    }
   }
+  Serial.flush();
+  delay(500);
+  esp_sleep_enable_timer_wakeup(sleeptime * 1000000ULL);  // ngủ sau 5 giây
+  esp_deep_sleep_start();
 }
+
+void loop() {
+}
+
 
 // Hàm kết nối Wi-Fi
 void setupWiFi() {
