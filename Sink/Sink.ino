@@ -1,24 +1,24 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include "MeshLora.h"
+#include "LoraMesh.h"
 
 // Thông tin Wi-Fi
 const char* ssid = "Phong_4";
 const char* wifi_password = "1234512345";
 
 // Thông tin MQTT Broker
-const char* mqtt_server = "103.221.220.183";
+const char* mqtt_server = "mqtt.cusc.vn";
 const int mqtt_port = 1883;
-const char* mqtt_user = "api1@Iotlab";
-const char* mqtt_pass = "Iotlab@2023";
+const char* mqtt_user = "Hardware_Test";
+const char* mqtt_pass = "test@123";
 // thời gian ngủ
 #define sleeptime 15 * 60  // Giây
 // Các chân LoRa
 #define SS 5
-#define RST 4
+#define RST 13
 #define DIO0 2
 #define masterID 1
-MeshLora mesh(masterID, 9600, 433E6, 5, SS, RST, DIO0);
+LoraMesh mesh(SS, RST, DIO0, masterID);
 
 // Tạo client WiFi và MQTT
 WiFiClient espClient;
@@ -26,36 +26,43 @@ PubSubClient mqttClient(espClient);
 
 void setup() {
   Serial.begin(9600);
-  // Kết nối WiFi
+  mesh.begin();
+  //Kết nối WiFi
   setupWiFi();
 
   // Kết nối MQTT
+
+  // Serial.flush();
+  // delay(500);
+  // esp_sleep_enable_timer_wakeup(sleeptime * 1000000ULL);  // ngủ sau 5 giây
+  // esp_deep_sleep_start();
+}
+
+
+
+void loop() {
   mqttClient.setServer(mqtt_server, mqtt_port);
   connectMQTT();
   if (!mqttClient.connected()) {
     connectMQTT();
   }
   mqttClient.loop();
-  for (int i = 2; i <= 4; i++) {
-    mesh.sendMessage("wakeup", i);
-    mesh.receiveMessage();
-    Serial.print("Dữ liệu nhận được từ LoRa: ");
-    Serial.println(mesh.receiveMsg);
 
-    //Gửi dữ liệu lên MQTT
-    if (mqttClient.publish("Hackaton", mesh.receiveMsg.c_str())) {
+  mesh.sendMessage("2", 2, 3);
+  long time = millis();
+  while (!mesh.receiveMessage() && millis() - time <= 5000)
+    ;
+  Serial.println(mesh.receiveMSG);
+
+  // Gửi dữ liệu lên MQTT
+  if(mesh.receiveMSG!="") {
+    if (mqttClient.publish("Hackaton", mesh.receiveMSG.c_str())) {
       Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
     } else {
       Serial.println("Gửi dữ liệu lên MQTT thất bại!");
     }
+    delay(2000);
   }
-  Serial.flush();
-  delay(500);
-  esp_sleep_enable_timer_wakeup(sleeptime * 1000000ULL);  // ngủ sau 5 giây
-  esp_deep_sleep_start();
-}
-
-void loop() {
 }
 
 
