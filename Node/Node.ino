@@ -3,7 +3,7 @@
 #include <SPI.h>
 #include <SoftwareSerial.h>
 #include "Plantower_PMS7003.h"
-#include "MeshLora.h"
+#include "LoraMesh.h"
 
 #define masterID 1
 #define StationID 2
@@ -20,7 +20,7 @@
 //
 
 // khởi tạo mesh
-MeshLora mesh(StationID, 9600, 433E6, 5, SS, RST, DIO0);
+LoraMesh mesh(SS, RST, DIO0, 2);
 // dust
 SoftwareSerial mySerial(16, 17);
 Plantower_PMS7003 pms7003;
@@ -34,7 +34,11 @@ void setup() {
   pinMode(LED_blue, OUTPUT);
   pinMode(LED_red, OUTPUT);
   pinMode(LED_yellow, OUTPUT);
+  mesh.begin();
+}
 
+
+void loop() {
   // Đọc giá trị pin lần đầu
   int batteryAnalog = analogRead(ANALOG_PIN);
   // Nếu pin thấp, vào chế độ ngủ ngay
@@ -43,51 +47,45 @@ void setup() {
   //    esp_deep_sleep_start();
   //  }
 
-  // Nếu pin đủ, thực hiện đo và gửi 4 lần
-  for (int i = 0; i <= 3; i++) {
-    // Điều khiển LED và cảm biến
-    digitalWrite(LED_blue, HIGH);
-    digitalWrite(LED_red, HIGH);
-    digitalWrite(LED_yellow, HIGH);
-    delay(500);
-    digitalWrite(LED_blue, LOW);
-    digitalWrite(LED_red, LOW);
-    digitalWrite(LED_yellow, LOW);
+  // Điều khiển LED và cảm biến
+  digitalWrite(LED_blue, HIGH);
+  digitalWrite(LED_red, HIGH);
+  digitalWrite(LED_yellow, HIGH);
+  digitalWrite(LED_blue, LOW);
+  digitalWrite(LED_red, LOW);
+  digitalWrite(LED_yellow, LOW);
 
 
-    // Thu thập dữ liệu từ cảm biến
-    //dust
-    pms7003.updateFrame();
-    int airDust = pms7003.getPM_2_5();
-    //
-
-
+  // Thu thập dữ liệu từ cảm biến
+  //dust
+  pms7003.updateFrame();
+  int airDust = pms7003.getPM_2_5();
+  //
+  mesh.receiveMessage();
+  Serial.println(mesh.receiveMSG);
+  if (mesh.receiveMSG == String(StationID)) {
     // Tạo gói dữ liệu
+    delay(200);
     String dataPacket = String("StationID:") + StationID + ",airDust:" + airDust + ",Battery:" + batteryAnalog;
+    delay(200);
 
     // In gói dữ liệu ra Serial Monitor
     Serial.println("Gói dữ liệu chuẩn bị gửi:");
     Serial.println(dataPacket);
 
     // Gửi dữ liệu qua LoRa
-    mesh.sendMessage(dataPacket, masterID);
+    mesh.sendMessage(dataPacket, 1, 3);
 
 
     // Xác nhận gói dữ liệu đã gửi
     Serial.println("Gói dữ liệu đã gửi thành công!");
-
     // Đợi trước khi gửi lần tiếp theo
     delay(500);
   }
-
   // Đưa ESP32 vào chế độ ngủ sau khi hoàn thành
   digitalWrite(Sensor1, LOW);
   // Serial.flush();
   // delay(500);
   // esp_sleep_enable_ext0_wakeup(GPIO_NUM_14,1); //1 = High, 0 = Low
   // esp_deep_sleep_start();
-}
-
-
-void loop() {
 }
