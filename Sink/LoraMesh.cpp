@@ -7,19 +7,17 @@ LoraMesh::LoraMesh(uint8_t SS, uint8_t RST, uint8_t DI0, int stationID) {
 }
 void LoraMesh::begin() {
   LoRa.setPins(SS, RST, DI0);
-  if (!LoRa.begin(433E6)) {  // Chọn tần số LoRa (433 MHz)
+  while (!LoRa.begin(433E6)) {  // Chọn tần số LoRa (433 MHz)
     Serial.println("Khởi động LoRa thất bại!");
-    while (1)
-      ;
   }
   Serial.println("LoRa đã sẵn sàng để truyền!");
 }
 
-void LoraMesh::sendMessage(String message, int destinationID, int ttlLimit) {
+void LoraMesh::sendMessage(String message, int destinationID, int sendednode, int ttlLimit) {
   LoRa.beginPacket();
-  LoRa.print(String(destinationID) + "." + String(ttlLimit) + "." + message);
+  LoRa.print(String(destinationID) + "." + String(sendednode) + "." + String(ttlLimit) + "." + message);
   LoRa.endPacket();
-  Serial.println("Message sent: " + String(destinationID) + "." + String(ttlLimit) + "." + message);
+  Serial.println("Message sent: " + String(destinationID) + "." + String(sendednode) + "." + String(ttlLimit) + "." + message);
 }
 
 bool LoraMesh::receiveMessage() {
@@ -31,18 +29,34 @@ bool LoraMesh::receiveMessage() {
     }
     Serial.print("Received message: ");
     Serial.println(message);
-    int destinationID = message.substring(0, message.indexOf('.')).toInt();
-    int ttlLimit = message.substring(message.indexOf('.') + 1, message.lastIndexOf('.')).toInt();
-    String receiveMSG = message.substring(message.lastIndexOf('.') + 1);
+
+    int firstDot = message.indexOf('.');
+    int secondDot = message.indexOf('.', firstDot + 1);
+    int thirdDot = message.indexOf('.', secondDot + 1);
+    // Phần 1: destinationID (Trước dấu chấm đầu tiên)
+    int destinationID = message.substring(0, firstDot).toInt();
+
+    // Phần 2: sendednode (Giữa dấu chấm đầu tiên và thứ hai)
+    int sendednode = message.substring(firstDot + 1, secondDot).toInt();
+
+    // Phần 3: ttlLimit (Giữa dấu chấm thứ hai và thứ ba)
+    int ttlLimit = message.substring(secondDot + 1, thirdDot).toInt();
+
+    // Phần 4: receiveMSG (Sau dấu chấm thứ ba)
+    String receiveMSG = message.substring(thirdDot + 1);
+
     if (ttlLimit > 0 && destinationID != this->stationID) {
-      sendMessage(receiveMSG, destinationID, ttlLimit - 1);
+      sendMessage(receiveMSG, destinationID, sendednode, ttlLimit - 1);
     }
-    if(destinationID == this->stationID){
+    if (destinationID == this->stationID) {
       this->receiveMSG = receiveMSG;
+    }
+    else{
+      this->receiveMSG = "";
     }
     return 1;
   } else {
-    receiveMSG = "";
+    this->receiveMSG = "";
     return 0;
   }
 }
