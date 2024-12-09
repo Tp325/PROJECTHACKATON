@@ -12,8 +12,9 @@ private:
 public:
   LoraMesh(uint8_t SS, uint8_t RST, uint8_t DI0,int stationID);
   void begin();
-  void sendMessage(String message, int destinationID,int ttlLimit);
+  void sendMessage(String message, int destinationID, int sendednode, int ttlLimit);
   bool receiveMessage();
   String receiveMSG;
+  int sendednode;
 };
 #endif

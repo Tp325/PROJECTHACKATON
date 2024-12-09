@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include "LoraMesh.h"
+#include "esp_sleep.h"
 
 // Thông tin Wi-Fi
 const char* ssid = "Phong_4";
@@ -17,8 +18,9 @@ const char* mqtt_pass = "test@123";
 #define SS 5
 #define RST 13
 #define DIO0 2
-#define masterID 1
-LoraMesh mesh(SS, RST, DIO0, masterID);
+#define stationID 1
+#define uS_TO_S_FACTOR 1000000ULL
+LoraMesh mesh(SS, RST, DIO0, stationID);
 
 // Tạo client WiFi và MQTT
 WiFiClient espClient;
@@ -47,22 +49,30 @@ void loop() {
     connectMQTT();
   }
   mqttClient.loop();
+  mesh.sendMessage("-1", 10, stationID, 5);
+  delay(3000);
+  for (int i = 2; i <= 5; i++) {
+    mesh.sendMessage("-1", i, stationID, 5);
+    long time = millis();
+    while (!mesh.receiveMessage() && millis() - time <= 5000)
+      ;
+    Serial.println(mesh.receiveMSG);
 
-  mesh.sendMessage("2", 2, 3);
-  long time = millis();
-  while (!mesh.receiveMessage() && millis() - time <= 5000)
-    ;
-  Serial.println(mesh.receiveMSG);
-
-  // Gửi dữ liệu lên MQTT
-  if(mesh.receiveMSG!="") {
-    if (mqttClient.publish("Hackaton", mesh.receiveMSG.c_str())) {
-      Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
-    } else {
-      Serial.println("Gửi dữ liệu lên MQTT thất bại!");
+    // Gửi dữ liệu lên MQTT
+    if (mesh.receiveMSG != "") {
+      if (mqttClient.publish("Hackaton", mesh.receiveMSG.c_str())) {
+        Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
+      } else {
+        Serial.println("Gửi dữ liệu lên MQTT thất bại!");
+      }
+      delay(2000);
     }
-    delay(2000);
   }
+  Serial.println("Going to sleep now");
+  Serial.flush();
+  delay(500);
+  esp_sleep_enable_timer_wakeup(15 * uS_TO_S_FACTOR * 60);
+  esp_deep_sleep_start();
 }
 
 
