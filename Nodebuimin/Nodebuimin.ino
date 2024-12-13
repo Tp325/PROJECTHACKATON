@@ -54,7 +54,7 @@ void loop() {
     digitalWrite(LED_yellow, HIGH);
     pms7003.updateFrame();
     airDust = pms7003.getPM_2_5();
-    batteryAnalog = analogRead(ANALOG_PIN);
+    batteryAnalog = (analogRead(ANALOG_PIN) * 3.3 / 4095) * 5 / 3.3;
     delay(100);
   }
   digitalWrite(LED_yellow, LOW);
@@ -77,6 +77,6 @@ void loop() {
   Serial.println("Going to sleep now");
   Serial.flush();
   delay(500);
-  esp_sleep_enable_timer_wakeup(sleeptime* uS_TO_S_FACTOR );
+  esp_sleep_enable_timer_wakeup(sleeptime * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }

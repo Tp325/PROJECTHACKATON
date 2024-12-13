@@ -10,13 +10,13 @@ const char* wifi_password = "1234512345";
 // Thông tin MQTT Broker
 const char* mqtt_server = "mqtt.cusc.vn";
 const int mqtt_port = 1883;
-const char* mqtt_user = "Hardware_Test";
-const char* mqtt_pass = "test@123";
+const char* mqtt_user = "hackathon";
+const char* mqtt_pass = "hackathon@123";
 // thời gian ngủ
 #define sleeptime 15 * 60  // Giây
 // Các chân LoRa
 #define SS 5
-#define RST 13
+#define RST 4
 #define DIO0 2
 #define stationID 0
 #define uS_TO_S_FACTOR 1000000ULL
@@ -52,7 +52,7 @@ void loop() {
   Serial.println(mesh.receiveMSG);
   // Gửi dữ liệu lên MQTT
   if (mesh.receiveMSG != "") {
-    if (mqttClient.publish("Hackaton", mesh.receiveMSG.c_str())) {
+    if (mqttClient.publish("Hackathon", mesh.receiveMSG.c_str())) {
       Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
     } else {
       Serial.println("Gửi dữ liệu lên MQTT thất bại!");
