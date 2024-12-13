@@ -18,7 +18,7 @@ const char* mqtt_pass = "test@123";
 #define SS 5
 #define RST 13
 #define DIO0 2
-#define stationID 1
+#define stationID 0
 #define uS_TO_S_FACTOR 1000000ULL
 LoraMesh mesh(SS, RST, DIO0, stationID);
 
@@ -29,11 +29,10 @@ PubSubClient mqttClient(espClient);
 void setup() {
   Serial.begin(9600);
   mesh.begin();
-  //Kết nối WiFi
-  setupWiFi();
-
   // Kết nối MQTT
-
+  setupWiFi();
+  mqttClient.setServer(mqtt_server, mqtt_port);
+  connectMQTT();
   // Serial.flush();
   // delay(500);
   // esp_sleep_enable_timer_wakeup(sleeptime * 1000000ULL);  // ngủ sau 5 giây
@@ -43,36 +42,22 @@ void setup() {
 
 
 void loop() {
-  mqttClient.setServer(mqtt_server, mqtt_port);
-  connectMQTT();
+  while (!mesh.receiveMessage())
+    ;
+  setupWiFi();
   if (!mqttClient.connected()) {
     connectMQTT();
   }
   mqttClient.loop();
-  mesh.sendMessage("-1", 10, stationID, 5);
-  delay(3000);
-  for (int i = 2; i <= 5; i++) {
-    mesh.sendMessage("-1", i, stationID, 5);
-    long time = millis();
-    while (!mesh.receiveMessage() && millis() - time <= 5000)
-      ;
-    Serial.println(mesh.receiveMSG);
-
-    // Gửi dữ liệu lên MQTT
-    if (mesh.receiveMSG != "") {
-      if (mqttClient.publish("Hackaton", mesh.receiveMSG.c_str())) {
-        Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
-      } else {
-        Serial.println("Gửi dữ liệu lên MQTT thất bại!");
-      }
-      delay(2000);
+  Serial.println(mesh.receiveMSG);
+  // Gửi dữ liệu lên MQTT
+  if (mesh.receiveMSG != "") {
+    if (mqttClient.publish("Hackaton", mesh.receiveMSG.c_str())) {
+      Serial.println("Dữ liệu đã được gửi lên MQTT thành công!");
+    } else {
+      Serial.println("Gửi dữ liệu lên MQTT thất bại!");
     }
   }
-  Serial.println("Going to sleep now");
-  Serial.flush();
-  delay(500);
-  esp_sleep_enable_timer_wakeup(15 * uS_TO_S_FACTOR * 60);
-  esp_deep_sleep_start();
 }
 
 
