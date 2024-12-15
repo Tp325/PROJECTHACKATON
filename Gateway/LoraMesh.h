@@ -9,6 +9,7 @@ private:
   uint8_t RST;
   uint8_t DI0;
   int stationID;
+
 public:
   LoraMesh(uint8_t SS, uint8_t RST, uint8_t DI0,int stationID);
   void begin();
