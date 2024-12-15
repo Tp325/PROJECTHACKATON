@@ -3,10 +3,6 @@
 #include "LoraMesh.h"
 #include "esp_sleep.h"
 #include <WiFiManager.h>
-// Thông tin Wi-Fi
-const char* ssid = "Phong_4";
-const char* wifi_password = "1234512345";
-
 // Thông tin MQTT Broker
 const char* mqtt_server = "mqtt.cusc.vn";
 const int mqtt_port = 1883;
@@ -16,7 +12,8 @@ const char* mqtt_pass = "hackathon@123";
 #define sleeptime 15 * 60  // Giây
 // Các chân LoRa
 #define SS 5
-#define RST 4
+// #define RST 4
+#define RST 13
 #define DIO0 2
 #define stationID 0
 #define uS_TO_S_FACTOR 1000000ULL

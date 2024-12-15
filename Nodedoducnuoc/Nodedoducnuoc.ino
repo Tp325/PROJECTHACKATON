@@ -3,7 +3,8 @@
 #include <SPI.h>
 #include "LoraMesh.h"
 #include "HS000179.h"
-
+#include "esp_wifi.h"
+#include "esp_bt.h"
 #define StationID 3
 #define SinkID 0
 // Thiết lập ngủ
@@ -19,7 +20,8 @@
 
 // Các chân LoRa
 #define SS 5
-#define RST 4
+// #define RST 4
+#define RST 13
 #define DIO0 2
 
 // khởi tạo mesh
@@ -42,6 +44,7 @@ void setup() {
   digitalWrite(LED_red, HIGH);
   mesh.begin();
   doducnuoc.begin();
+  disable_bluetooth_wifi();
 }
 
 
@@ -72,9 +75,13 @@ void loop() {
 
   Serial.println("Đưa vào chế độ ngủ");
   digitalWrite(LED_red, LOW);
-  Serial.println("Going to sleep now");
   Serial.flush();
   delay(500);
-  esp_sleep_enable_timer_wakeup(sleeptime* uS_TO_S_FACTOR);
+  esp_sleep_enable_timer_wakeup(sleeptime * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
+}
+void disable_bluetooth_wifi() {
+  esp_bt_controller_disable();
+  esp_wifi_stop();
+  esp_wifi_deinit();
 }

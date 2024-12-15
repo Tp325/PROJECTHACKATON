@@ -13,6 +13,7 @@ void LoraMesh::begin() {
   Serial.println("LoRa đã sẵn sàng để truyền!");
 }
 
+
 void LoraMesh::sendMessage(String message, int destinationID, int sendednode, int ttlLimit) {
   LoRa.beginPacket();
   LoRa.print(String(destinationID) + "." + String(sendednode) + "." + String(ttlLimit) + "." + message);
@@ -33,8 +34,10 @@ bool LoraMesh::receiveMessage() {
     int firstDot = message.indexOf('.');
     int secondDot = message.indexOf('.', firstDot + 1);
     int thirdDot = message.indexOf('.', secondDot + 1);
+
+
     // Phần 1: destinationID (Trước dấu chấm đầu tiên)
-    int destinationID = message.substring(0, firstDot).toInt();
+    int destinationID = message.substring(0, message.indexOf('.')).toInt();
 
     // Phần 2: sendednode (Giữa dấu chấm đầu tiên và thứ hai)
     int sendednode = message.substring(firstDot + 1, secondDot).toInt();
@@ -50,8 +53,8 @@ bool LoraMesh::receiveMessage() {
     }
     if (destinationID == this->stationID) {
       this->receiveMSG = receiveMSG;
-    }
-    else{
+      this->sendednode = sendednode;
+    } else {
       this->receiveMSG = "";
     }
     return 1;
