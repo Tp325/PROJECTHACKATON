@@ -2,7 +2,7 @@
 #include <PubSubClient.h>
 #include "LoraMesh.h"
 #include "esp_sleep.h"
-
+#include <WiFiManager.h>
 // Thông tin Wi-Fi
 const char* ssid = "Phong_4";
 const char* wifi_password = "1234512345";
@@ -26,11 +26,14 @@ LoraMesh mesh(SS, RST, DIO0, stationID);
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
+//Wifi
+WiFiManager wm;
+
 void setup() {
   Serial.begin(9600);
   mesh.begin();
+  connectWifi();
   // Kết nối MQTT
-  setupWiFi();
   mqttClient.setServer(mqtt_server, mqtt_port);
   connectMQTT();
   // Serial.flush();
@@ -44,7 +47,6 @@ void setup() {
 void loop() {
   while (!mesh.receiveMessage())
     ;
-  setupWiFi();
   if (!mqttClient.connected()) {
     connectMQTT();
   }
@@ -61,17 +63,6 @@ void loop() {
 }
 
 
-// Hàm kết nối Wi-Fi
-void setupWiFi() {
-  Serial.print("Đang kết nối với WiFi...");
-  WiFi.begin(ssid, wifi_password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println(" Đã kết nối với WiFi!");
-}
-
 // Hàm kết nối MQTT
 void connectMQTT() {
   while (!mqttClient.connected()) {
@@ -83,5 +74,16 @@ void connectMQTT() {
       Serial.print(mqttClient.state());
       delay(2000);
     }
+  }
+}
+void connectWifi() {
+  bool res;
+  res = wm.autoConnect("AutoConnectAP", "AutoConnectAP");
+  if (!res) {
+    Serial.println("Failed to connect");
+    ESP.restart();
+  } else {
+    //if you get here you have connected to the WiFi
+    Serial.println("connected");
   }
 }
